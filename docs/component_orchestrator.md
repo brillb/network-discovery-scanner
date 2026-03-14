@@ -6,9 +6,10 @@
 Its responsibilities are:
 
 - parse CLI arguments
+- read `targets.csv` into target rules
+- fail early if subnet sweep targets require Nmap but the host laptop cannot run `nmap`
 - initialize the database and evidence folder
 - load the shared YAML inputs once
-- read `targets.csv` into target rules
 - resolve overlapping target precedence before scheduling work
 - sweep subnets, enqueue IP scan requests, and bound memory usage with queues
 - run dedicated DB writer threads so SQLite can stay on a single writer connection
@@ -105,6 +106,7 @@ The orchestrator uses three layers:
 1. Main thread
    - parses inputs
    - loads target rules
+   - validates early Nmap prerequisites for subnet sweeps
    - sweeps subnets
    - enqueues IP scan requests
 2. Scan worker threads
@@ -221,16 +223,17 @@ For each candidate IP produced by a subnet sweep:
 ## High-Level Flow
 
 1. Parse CLI and validate DB concurrency rules.
-2. Initialize the schema and create the evidence folder.
-3. Load `keys.yaml` and `ssh_commands.yaml` once.
-4. Read `targets.csv` into `TargetSpec` rules.
-5. Start scan worker threads and DB writer threads.
-6. Walk the target rules:
+2. Read `targets.csv` into `TargetSpec` rules.
+3. If any target requires a subnet sweep, verify that the host can run `nmap`.
+4. Initialize the schema and create the evidence folder.
+5. Load `keys.yaml` and `ssh_commands.yaml` once.
+6. Start scan worker threads and DB writer threads.
+7. Walk the target rules:
    - direct IPs are scheduled if they win precedence
    - subnets are swept and only winning IPs are scheduled
-7. Scan workers run the single-IP pipeline and push results to the appropriate writer shard.
-8. Writer threads persist the results and commit once per IP.
-9. The orchestrator waits for the queues to drain and then exits with any runtime failures summarized.
+8. Scan workers run the single-IP pipeline and push results to the appropriate writer shard.
+9. Writer threads persist the results and commit once per IP.
+10. The orchestrator waits for the queues to drain and then exits with any runtime failures summarized.
 
 ---
 

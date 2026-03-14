@@ -65,7 +65,9 @@ The orchestrator reads the target list, expands subnets when needed, and launche
 4. Collect raw CLI evidence over SSH.
 5. Persist results to the database and evidence folder.
 
-Because the system is broken into distinct modules for orchestration, reachability, SNMP, SSH, database loading, and browser presentation, it is relatively easy for a technician to troubleshoot one stage, enhance one capability, or adapt the workflow for a client-specific need.
+During a run, the orchestrator also presents live terminal status and mirrors output to a per-run logfile stored alongside the evidence files.
+
+Because the system is broken into distinct modules for orchestration, runtime UI/logging, reachability, SNMP, SSH, database loading, and browser presentation, it is relatively easy for a technician to troubleshoot one stage, enhance one capability, or adapt the workflow for a client-specific need.
 
 ## Serial Versus Parallel Operation
 The product has two distinct operating patterns.
@@ -76,7 +78,7 @@ SQLite is ideal when the goal is simplicity. A technician can carry the tool on 
 That mode is intentionally serial. It is slower, but operationally simple and portable.
 
 ### External SQL Database
-When the database backend is PostgreSQL, MySQL, or MariaDB, the orchestrator can launch multiple device discovery workers in parallel. Each worker writes results to the shared database, which is what makes large discovery runs practical.
+When the database backend is PostgreSQL, MySQL, or MariaDB, the orchestrator can launch multiple device discovery workers in parallel while dedicated writer threads persist results to the shared database. That separation is what makes large discovery runs practical without tying scan concurrency directly to database write concurrency.
 
 ```mermaid
 flowchart TD

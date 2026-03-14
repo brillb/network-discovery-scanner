@@ -6,6 +6,7 @@ The Network Scanner and Discovery Tool is a modular Python utility designed to r
 The design is intentionally split into narrow modules:
 
 - the orchestrator handles targets, scheduling, and database writer coordination
+- the orchestrator CLI UI handles live terminal status and per-run log capture
 - the single-IP pipeline handles discovery logic for one device
 - the protocol modules handle the actual Ping, TCP, SNMP, and SSH work
 - the database layer owns persistence rules and transaction boundaries
@@ -20,14 +21,27 @@ The main entry point of the scanner.
 Responsibilities:
 
 - parse CLI arguments
+- create the run-specific evidence folder and per-run logfile path
+- initialize the runtime CLI UI and fallback logging behavior
+- load `targets.csv`, `keys.yaml`, and `ssh_commands.yaml`
+- fail early if subnet sweep targets require Nmap but the system `nmap` binary is unavailable
 - validate database concurrency settings
 - initialize the database schema
-- create the run-specific evidence folder
-- load `targets.csv`, `keys.yaml`, and `ssh_commands.yaml`
 - resolve overlapping target precedence rules
 - expand subnets by sweeping only for active hosts
 - enqueue single-IP scans into bounded worker queues
 - run dedicated DB writer threads so network concurrency is decoupled from DB write concurrency
+
+#### `module_orchestrator_cli_ui.py`
+The orchestrator runtime presentation and logging layer.
+
+Responsibilities:
+
+- build the default logfile path inside the run-specific evidence folder
+- mirror console output to a per-run logfile
+- render a Blessed-based live terminal dashboard when the terminal supports it
+- fall back cleanly to plain console logging when Blessed or terminal features are unavailable
+- display current target progress, worker counts, DB queue depth, and output paths without mixing that logic into the orchestrator core
 
 #### `process_single_ip.py`
 The single-device discovery orchestrator.
@@ -123,19 +137,22 @@ These tools consume the database and evidence directory after the scan. They are
 
 ```mermaid
 graph TD
-    A[scanner_orchestrator.py] --> B[scan worker threads]
-    B --> C[SingleIPPipeline]
-    C --> D[module_ping.py]
-    C --> E[module_portscan.py]
-    C --> F[module_snmp.py]
-    C --> G[module_ssh.py]
-    B --> H[result queues]
-    H --> I[writer threads]
-    I --> J[module_db_writer.py]
-    J -.-> K[(Configured Discovery Database)]
-    G -.-> L[Evidence Folder]
-    M[src/browser/*] -.reads.-> K
-    M -.reads.-> L
+    A[scanner_orchestrator.py] --> B[module_orchestrator_cli_ui.py]
+    A --> C[scan worker threads]
+    C --> D[SingleIPPipeline]
+    D --> E[module_ping.py]
+    D --> F[module_portscan.py]
+    D --> G[module_snmp.py]
+    D --> H[module_ssh.py]
+    C --> I[result queues]
+    I --> J[writer threads]
+    J --> K[module_db_writer.py]
+    K -.-> L[(Configured Discovery Database)]
+    H -.-> M[Evidence Folder]
+    B -.-> M
+    B -.-> N[Per-run Logfile]
+    O[src/browser/*] -.reads.-> L
+    O -.reads.-> M
 ```
 
 ## 3. Inputs
@@ -235,8 +252,9 @@ By separating the scan workers from the DB writer threads, the scanner can:
 
 #### Main thread
 
-- loads config and input files
 - reads the target rules
+- validates early prerequisites such as Nmap availability for subnet sweeps
+- loads config and input files
 - sweeps subnets
 - enqueues single-IP requests
 
@@ -468,6 +486,10 @@ Typical content:
 - platform-specific show commands from the selected profile
 
 The evidence files are the raw forensic/archive output, while the database stores the normalized summary.
+
+Each orchestrator run also creates a logfile in that same run folder.
+
+That logfile mirrors console output and UI messages so the operator still has a durable plain-text record even when the Blessed dashboard was active during the run.
 
 ## 9. Large-Scale Behavior
 

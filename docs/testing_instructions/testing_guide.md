@@ -10,38 +10,38 @@ Each core module was designed to be run standalone via the command line. This is
 Tests basic ICMP reachability.
 ```bash
 # Test a known good host (e.g., Google DNS or a local gateway)
-python module_ping.py --ip 8.8.8.8
+python src/module_ping.py --ip 8.8.8.8
 ```
 
 ### Testing Portscan (`module_portscan.py`)
 Tests TCP 22 fallback and Nmap subnet sweeping.
 ```bash
 # Test a single IP for SSH port 22
-python module_portscan.py --ip 127.0.0.1
+python src/module_portscan.py --ip 127.0.0.1
 
 # Test sweeping a local subnet to find alive hosts
 # Note: Requires Nmap to be installed on your OS!
-python module_portscan.py --subnet 192.168.1.0/24 
+python src/module_portscan.py --subnet 192.168.1.0/24
 ```
 
 ### Testing SNMP (`module_snmp.py`)
 Polls a device for system MIBs and interfaces to verify community strings or v3 encryption.
 ```bash
 # Test SNMPv2c
-python module_snmp.py --ip 10.0.0.1 --version 2c --community public
+python src/module_snmp.py --ip 10.0.0.1 --version 2c --community public
 
 # Test SNMPv3
-python module_snmp.py --ip 10.0.0.1 --version 3 --v3-user admin --v3-auth authpass --v3-priv privpass
+python src/module_snmp.py --ip 10.0.0.1 --version 3 --v3-user admin --v3-auth authpass --v3-priv privpass
 ```
 
 ### Testing SSH (`module_ssh.py`)
 Verifies Netmiko can successfully connect, run commands, and save the configuration to disk.
 ```bash
 # Test Password Auth
-python module_ssh.py --ip 10.0.0.1 --username admin --password SuperSecret --ssh-commands-file fully_qualified_path/ssh_commands.yaml
+python src/module_ssh.py --ip 10.0.0.1 --username admin --password SuperSecret --ssh-commands-file fully_qualified_path/ssh_commands.yaml
 
 # Test Key Auth
-python module_ssh.py --ip 10.0.0.1 --username automation --key-file /path/to/rsa.key --ssh-commands-file fully_qualified_path/ssh_commands.yaml
+python src/module_ssh.py --ip 10.0.0.1 --username automation --key-file /path/to/rsa.key --ssh-commands-file fully_qualified_path/ssh_commands.yaml
 ```
 
 ## 2. Testing the Pipeline (`process_single_ip.py`)
@@ -50,7 +50,7 @@ To verify that the phases correctly hand off to one another (Ping -> SNMP -> SSH
 
 ```bash
 # Provide absolute paths to your keys and commands files
-python process_single_ip.py \
+python src/process_single_ip.py \
     --ip 10.0.0.1 \
     --keytags dummy_credentials \
     --keys-file fully_qualified_path/keys.yaml \
@@ -64,10 +64,10 @@ This tests database insertion natively for a single node using the backend defin
 
 To test the entire application exactly as an architect would use it:
 
-1. **Prepare your inputs**: Fill out `targets.csv` using the **`docs/targets.template.csv`** as a base. Ensure `keys.yaml` is populated with the correct matching credentials by copying **`docs/keys.template.yaml`**.
+1. **Prepare your inputs**: Seed a run folder from `docs/sample_config_files`, then edit the copied `targets.csv`, `keys.yaml`, `ssh_commands.yaml`, and one of the DB samples copied to `db.yaml`.
 2. **Execute**:
 ```bash
-python scanner_orchestrator.py \
+python src/scanner_orchestrator.py \
     --targets targets.csv \
     --keys keys.yaml \
     --ssh-commands ssh_commands.yaml \
@@ -78,7 +78,7 @@ python scanner_orchestrator.py \
 You can also validate bounded threaded concurrency:
 
 ```bash
-python scanner_orchestrator.py \
+python src/scanner_orchestrator.py \
     --targets targets.csv \
     --keys keys.yaml \
     --ssh-commands ssh_commands.yaml \
@@ -93,7 +93,7 @@ For SQLite, `--max-db-connections` must remain `1`.
 For external PostgreSQL, MySQL, or MariaDB backends, you can raise both settings. Example:
 
 ```bash
-python scanner_orchestrator.py \
+python src/scanner_orchestrator.py \
     --targets targets.csv \
     --keys keys.yaml \
     --ssh-commands ssh_commands.yaml \
@@ -106,6 +106,7 @@ python scanner_orchestrator.py \
 ### Validation Checklist
 After the orchestrator finishes:
 - [ ] Check the `evidence-dir` folder. Was a new folder named `discovered_device_evidence_YYYYMMDD_HHMMSS` created?
+- [ ] Inside that folder, was a per-run `logfile-YYYYMMDD_HHMMSS.txt` also created?
 - [ ] Inside that folder, are there raw text files containing the device configs (e.g., `10.0.0.1-ssh-...txt`)?
 - [ ] Open the database defined in `db.yaml`. Ensure the `device_inventory` and `device_interfaces` tables are fully populated with the hardware models, serial numbers, and IPs pulled from the SNMP phase.
 - [ ] Confirm `device_inventory.hardware_product`, `model`, and `serial_number` resolve to useful values even on devices that primarily expose `sysObjectID` or Entity-MIB inventory data.
@@ -119,6 +120,7 @@ After the orchestrator finishes:
 - [ ] Confirm the orchestrator honors `max-workers-per-db-connection * max-db-connections` as the active scan ceiling.
 - [ ] Confirm SQLite rejects `--max-db-connections` values greater than `1`.
 - [ ] Confirm overlapping CSV targets do not trigger duplicate IP scans and that the more-specific target entry wins.
+- [ ] Confirm the orchestrator exits early with a readable error if `targets.csv` contains subnet sweep entries but the host laptop does not have `nmap` available on PATH.
 
 ---
 
