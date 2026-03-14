@@ -182,18 +182,18 @@ Once your scan is complete, you can review the configured database natively or u
 
 ### Tabular Browser
 
-To view a text-based, tabular representation of your scan iterations and evidence:
+To view a text-based, tabular representation of your scan iterations and evidence, available at [http://localhost:5501](http://localhost:5501):
 
 ``` bash
-python src/browser/tabular_browser.py --dbconfig XYZcorp_scanning/db.yaml --directory XYZcorp_scanning/scan_results
+python src/browser/tabular_browser.py --dbconfig XYZcorp_scanning/db.yaml --directory XYZcorp_scanning/scan_results --port 5501
 ```
 
 ### Graphical Browser
 
-To launch a rich, graphical view rendering the relationships and stored configurations dynamically:
+To launch a rich, graphical view rendering the relationships and stored configurations dynamically, available at [http://localhost:5502](http://localhost:5502):
 
 ``` bash
-python src/browser/graphical_browser.py --dbconfig XYZcorp_scanning/db.yaml --directory XYZcorp_scanning/scan_results
+python src/browser/graphical_browser.py --dbconfig XYZcorp_scanning/db.yaml --directory XYZcorp_scanning/scan_results --port 5502
 ```
 
 - - -
