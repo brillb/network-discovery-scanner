@@ -1,0 +1,19 @@
+dummy_credentials:
+  snmpv2:
+    - "public"
+  ssh_password:
+    - username: "admin"
+      password: "SuperSecretPassword"
+
+dummy_v3_sec_team:
+  snmpv3:
+    - username: "admin"
+      auth_protocol: "SHA"
+      auth_key: "authpass123"
+      priv_protocol: "AES"
+      priv_key: "privpass123"
+
+dummy_automation_rsa:
+  ssh_key:
+    - username: "automation"
+      key_file: "./dummy_rsa"

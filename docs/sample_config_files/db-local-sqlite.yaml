@@ -1,0 +1,3 @@
+db:
+  type: sqlite
+  dbfile: scan_results/discovery_results.sqlite

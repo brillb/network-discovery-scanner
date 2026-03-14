@@ -1,0 +1,12 @@
+# Specific folders to ignore
+ben_tests/
+__pycache__/
+
+# Recommended: Ignore all python compiled files
+*.py[cod]
+*$py.class
+
+# Recommended: Ignore local environment files
+.env
+venv/
+.venv/

@@ -1,0 +1,148 @@
+# ssh_commands.yaml
+# Defines OS-specific commands to be executed during the SSH phase.
+# The 'snmp_regex_matcher' is evaluated by process_single_ip.py against 
+# the `software_image` or `hardware_product` strings returned by the SNMP phase.
+
+cisco_ios:
+  # Matches standard Cisco IOS and IOS-XE
+  snmp_regex_matcher: "(?i)(IOS Software|Cisco IOS-XE|Cisco IOS XE)"
+  netmiko_device_type: "cisco_ios"
+  commands:
+    - "show running-config"
+    - "show cdp neighbors detail"
+    - "show lldp neighbors detail"
+    - "show version"
+    - "show ip interface brief"
+    - "show ip bgp neighbors"
+    - "show ip arp"
+    - "show mac address-table"
+
+cisco_nxos:
+  # Matches Cisco Nexus NX-OS
+  snmp_regex_matcher: "(?i)(NX-OS|Nexus)"
+  netmiko_device_type: "cisco_nxos"
+  commands:
+    - "show running-config"
+    - "show cdp neighbors detail"
+    - "show lldp neighbors detail"
+    - "show version"
+    - "show interface brief"
+    - "show ip arp vrf all"
+    - "show mac address-table"
+
+cisco_xr:
+  # Matches Cisco IOS-XR
+  snmp_regex_matcher: "(?i)(IOS-XR|Cisco IOS XR)"
+  netmiko_device_type: "cisco_xr"
+  commands:
+    - "show running-config"
+    - "show cdp neighbors detail"
+    - "show lldp neighbors detail"
+    - "show version"
+    - "show ipv4 interface brief"
+    - "show arp"
+
+juniper_junos:
+  # Matches Juniper SRX / EX / QFX
+  snmp_regex_matcher: "(?i)(JUNOS|Juniper Networks)"
+  netmiko_device_type: "juniper_junos"
+  commands:
+    - "show configuration"
+    - "show lldp neighbors"
+    - "show version"
+    - "show interfaces terse"
+    - "show arp"
+    - "show route"
+
+paloalto_panos:
+  # Matches Palo Alto Firewalls
+  snmp_regex_matcher: "(?i)(Palo Alto Networks|PAN-OS)"
+  netmiko_device_type: "paloalto_panos"
+  commands:
+    - "show config running"
+    - "show system info"
+    - "show arp all"
+    - "show routing route"
+    - "show interface logical"
+
+f5_tmos:
+  # Matches F5 BIG-IP / TMOS
+  snmp_regex_matcher: "(?i)(F5 Networks|BIG-IP|TMOS)"
+  netmiko_device_type: "f5_tmos"
+  commands:
+    - "tmsh show running-config"
+    - "tmsh show sys version"
+    - "tmsh show net arp"
+    - "tmsh show net interface"
+    - "tmsh show net route"
+
+cisco_ftd:
+  # Matches Cisco Firepower Threat Defense (including virtual)
+  snmp_regex_matcher: "(?i)(Cisco Firepower|FTD|FTDv|Threat Defense)"
+  netmiko_device_type: "cisco_ftd"
+  commands:
+    - "show running-config"
+    - "show network"
+    - "show version"
+    - "show arp"
+
+cisco_asa:
+  # Matches Cisco ASA and virtual ASA (ASAv)
+  snmp_regex_matcher: "(?i)(Cisco ASA|Adaptive Security Appliance|ASAv)"
+  netmiko_device_type: "cisco_asa"
+  commands:
+    - "show running-config"
+    - "show version"
+    - "show interface ip brief"
+    - "show arp"
+    - "show route"
+
+aruba_os:
+  # Matches Aruba OS Switches
+  snmp_regex_matcher: "(?i)(Aruba|ArubaOS|Aruba Networks)"
+  netmiko_device_type: "aruba_os"
+  commands:
+    - "show running-config"
+    - "show version"
+    - "show lldp info remote-device"
+    - "show vlans"
+    - "show arp"
+
+aruba_sdwan:
+  # Matches Aruba SD-WAN / Silver Peak
+  snmp_regex_matcher: "(?i)(Silver Peak|EdgeConnect|Aruba SD-WAN)"
+  netmiko_device_type: "linux" # Netmiko fallback for EdgeConnect CLI
+  commands:
+    - "show running-config"
+    - "show system version"
+    - "show interfaces config"
+
+hp_procurve:
+  # Matches HPE / HP Procurve
+  snmp_regex_matcher: "(?i)(HP ProCurve|HPE|HP Enterprise)"
+  netmiko_device_type: "hp_procurve"
+  commands:
+    - "show running-config"
+    - "show version"
+    - "show lldp info remote-device"
+    - "show vlans"
+    - "show arp"
+
+cisco_meraki:
+  # Matches Cisco Meraki
+  snmp_regex_matcher: "(?i)(Meraki|MR|MS|MX)"
+  netmiko_device_type: "cisco_ios" # Meraki minimal CLI
+  commands:
+    - "show version"
+    - "show arp"
+
+citrix_netscaler:
+  # Matches Citrix Netscaler / ADC
+  snmp_regex_matcher: "(?i)(Netscaler|Citrix ADC)"
+  netmiko_device_type: "netscaler"
+  commands:
+    - "show ns hardware"
+    - "show ns ip"
+    - "show arp"
+    - "show interface"
+    - "show config"

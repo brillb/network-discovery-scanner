@@ -1,0 +1,18 @@
+flowchart TD
+    Start((Start: Single IP)) --> PingCheck{Ping OK?}
+    PingCheck -->|No| PortCheck{TCP 22 Open?}
+    PingCheck -->|Yes| SNMPPhase
+    PortCheck -->|No| MarkDead[Log Dead Host in SQLite] --> End((End))
+    PortCheck -->|Yes| SNMPPhase[SNMP Phase]
+
+    SNMPPhase --> TryCSV_SNMP{Try CSV\nSNMP Creds}
+    TryCSV_SNMP -->|Fail/Blank| TryAll_SNMP{Brute-force\nkeys.txt SNMP}
+    TryCSV_SNMP -->|Success| RecordSNMP[Record HW/SW info\nto SQLite] --> SSHPhase
+    TryAll_SNMP -->|Success| RecordSNMP
+    TryAll_SNMP -->|Fail| LogNoSNMP[Log Ping/SSH ok,\nNO SNMP responses] --> SSHPhase
+
+    SSHPhase[SSH Phase] --> TryCSV_SSH{Try CSV\nSSH Creds}
+    TryCSV_SSH -->|Fail/Blank| TryAll_SSH{Brute-force\nkeys.txt SSH}
+    TryCSV_SSH -->|Success| RecordSSH[Run CLI Commands\n& Save Log to Folder] --> End
+    TryAll_SSH -->|Success| RecordSSH
+    TryAll_SSH -->|Fail| LogNoSSH[Log NO SSH Access\nto SQLite] --> End

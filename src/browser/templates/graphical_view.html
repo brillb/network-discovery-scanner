@@ -1,0 +1,360 @@
+{% extends "graphical_base.html" %}
+
+{% block title %}Topology: {{ db_label }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col-md-6">
+        <h1 class="mb-0 h3">
+            <a href="{{ url_for('index') }}" class="text-info text-decoration-none me-2 custom-hover"><i class="fas fa-arrow-left"></i></a>
+            <i class="fas fa-project-diagram me-2 text-warning"></i> Topology View
+        </h1>
+        <div class="text-muted mt-1 small">Database: <code>{{ db_label }}</code></div>
+    </div>
+    <div class="col-md-6 text-md-end mt-3 mt-md-0">
+        <div class="badge bg-secondary p-2 me-2 px-3 fw-normal" style="background:#1f77b4 !important;"><img src="{{ url_for('static', filename='logos/cisco.png') }}" alt="Cisco" style="width:18px; height:18px; object-fit:contain; margin-right:6px;"> Cisco</div>
+        <div class="badge bg-secondary p-2 me-2 px-3 fw-normal" style="background:#2ca02c !important;"><img src="{{ url_for('static', filename='logos/juniper.png') }}" alt="Juniper" style="width:18px; height:18px; object-fit:contain; margin-right:6px;"> Juniper</div>
+        <div class="badge bg-secondary p-2 me-2 px-3 fw-normal" style="background:#9467bd !important;"><img src="{{ url_for('static', filename='logos/arista.png') }}" alt="Arista" style="width:18px; height:18px; object-fit:contain; margin-right:6px;"> Arista</div>
+        <div class="badge bg-secondary p-2 px-3 fw-normal" style="background:#d62728 !important;"><img src="{{ url_for('static', filename='logos/palo-alto.png') }}" alt="Palo Alto" style="width:18px; height:18px; object-fit:contain; margin-right:6px;"> Palo Alto</div>
+    </div>
+</div>
+
+<!-- Graph Container -->
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="glass-card p-0 overflow-hidden position-relative" style="height: 75vh;">
+            <div id="loadingIndicator" class="position-absolute w-100 h-100 d-flex justify-content-center align-items-center bg-dark" style="z-index:10; --bs-bg-opacity: .8;">
+                <div class="spinner-border text-info" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+            <div id="networkGraph" style="width: 100%; height: 100%;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal fade" id="deviceModal" tabindex="-1" aria-labelledby="deviceModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content text-light" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1);">
+      <div class="modal-header border-secondary">
+        <h5 class="modal-title" id="deviceModalLabel">
+            <img id="modalLogo" src="{{ url_for('static', filename='logos/unknown.png') }}" alt="" style="width:28px; height:28px; object-fit:contain; margin-right:10px; padding:4px; border-radius:999px; background:rgba(255,255,255,0.08); border:2px solid rgba(255,255,255,0.14);"> <span id="modalTitle">Loading...</span>
+            <span id="modalErrorIcon" class="d-none" title="This device has a recent error recorded." style="display:inline-flex; margin-left:10px; color:#facc15; vertical-align:middle;">
+                <svg fill="currentColor" viewBox="0 0 24 24" style="width:20px; height:20px;">
+                    <path fill-rule="evenodd" d="M12 2.25a1.5 1.5 0 011.299.75l9 15.75A1.5 1.5 0 0121 21H3a1.5 1.5 0 01-1.299-2.25l9-15.75A1.5 1.5 0 0112 2.25zm0 6.25a.75.75 0 00-.75.75v4.5a.75.75 0 001.5 0v-4.5A.75.75 0 0012 8.5zm0 9a1.125 1.125 0 100-2.25 1.125 1.125 0 000 2.25z" clip-rule="evenodd"></path>
+                </svg>
+            </span>
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0">
+          <div class="row g-0">
+              <!-- Sidebar Stats -->
+              <div class="col-lg-4 p-4 border-end border-secondary" style="background: rgba(0,0,0,0.2);">
+                  
+                  <div id="modalSpinner" class="text-center py-5">
+                      <div class="spinner-border text-info" role="status"></div>
+                  </div>
+                  
+                  <div id="modalContent" class="d-none">
+                      <h6 class="text-uppercase text-muted mb-3 small fw-bold">System Details</h6>
+                      <ul class="list-group list-group-flush bg-transparent mb-4">
+                          <li class="list-group-item bg-transparent border-secondary px-0 d-flex justify-content-between">
+                              <span class="text-muted">IP Address</span>
+                              <strong id="dtIp" class="text-white"></strong>
+                          </li>
+                          <li class="list-group-item bg-transparent border-secondary px-0 d-flex justify-content-between">
+                              <span class="text-muted">Vendor</span>
+                              <strong id="dtVendor" class="text-white"></strong>
+                          </li>
+                          <li class="list-group-item bg-transparent border-secondary px-0 d-flex justify-content-between">
+                              <span class="text-muted">Model</span>
+                              <strong id="dtModel" class="text-white"></strong>
+                          </li>
+                          <li class="list-group-item bg-transparent border-secondary px-0 d-flex justify-content-between">
+                              <span class="text-muted">Serial</span>
+                              <strong id="dtSerial" class="text-white mono"></strong>
+                          </li>
+                          <li class="list-group-item bg-transparent border-secondary px-0 d-flex justify-content-between">
+                              <span class="text-muted">OS Version</span>
+                              <strong id="dtOs" class="text-white"></strong>
+                          </li>
+                          <li class="list-group-item bg-transparent border-secondary px-0 d-flex justify-content-between">
+                              <span class="text-muted">TCP/22</span>
+                              <strong id="dtTcp22" class="text-white"></strong>
+                          </li>
+                          <li class="list-group-item bg-transparent border-secondary px-0 d-flex justify-content-between">
+                              <span class="text-muted">SNMP Credential</span>
+                              <strong id="dtSnmpCredential" class="text-white mono"></strong>
+                          </li>
+                          <li class="list-group-item bg-transparent border-secondary px-0 d-flex justify-content-between">
+                              <span class="text-muted">SSH Credential</span>
+                              <strong id="dtSshCredential" class="text-white mono"></strong>
+                          </li>
+                          <li class="list-group-item bg-transparent border-secondary px-0">
+                              <div class="text-muted mb-1">Last Error</div>
+                              <div id="dtLastError" class="text-white small" style="word-break: break-word;"></div>
+                          </li>
+                      </ul>
+                      
+                      <h6 class="text-uppercase text-muted mb-3 small fw-bold">Interfaces</h6>
+                      <div class="bg-dark rounded p-2 mb-4" style="max-height: 150px; overflow-y: auto;">
+                          <table class="table table-sm table-dark table-borderless mb-0 fs-7">
+                              <tbody id="dtInterfaces"></tbody>
+                          </table>
+                      </div>
+                      
+                      <h6 class="text-uppercase text-muted mb-3 small fw-bold">Outbound Neighbors</h6>
+                      <div class="bg-dark rounded p-2 mb-4" style="max-height: 120px; overflow-y: auto;">
+                          <ul class="list-unstyled mb-0 fs-7" id="dtNeighbors"></ul>
+                      </div>
+                      
+                      <h6 class="text-uppercase text-muted mb-3 small fw-bold">Inbound Neighbors</h6>
+                      <div class="bg-dark rounded p-2" style="max-height: 120px; overflow-y: auto;">
+                          <ul class="list-unstyled mb-0 fs-7" id="dtSeenBy"></ul>
+                      </div>
+                  </div>
+              </div>
+              
+              <!-- Main Config Pane -->
+              <div class="col-lg-8 p-0 d-flex flex-column" style="height: 600px;">
+                  <div class="p-3 border-bottom border-secondary bg-dark d-flex justify-content-between align-items-center">
+                    <span class="text-uppercase text-muted small fw-bold"><i class="fas fa-file-code me-2"></i> Active Configuration</span>
+                    <span id="dtScanCredential" class="text-muted small mono me-3"></span>
+                    <select id="dtScanTimeSelect" class="form-select form-select-sm bg-secondary text-light border-secondary ms-auto" style="width: auto;"></select>
+                  </div>
+                  <pre class="m-0 p-4 flex-grow-1 overflow-auto" style="background: rgba(30, 30, 30, 0.5); font-family: 'Consolas', 'Courier New', monospace; font-size: 0.85rem;"><code id="dtConfig" class="text-light">Loading config evidence...</code></pre>
+              </div>
+          </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Load Vis.js Framework -->
+<script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const dbname = "{{ dbname }}";
+        const container = document.getElementById('networkGraph');
+        const loading = document.getElementById('loadingIndicator');
+        const dModal = new bootstrap.Modal(document.getElementById('deviceModal'));
+
+        // Fetch graph payload from local API
+        fetch(`/api/db/${dbname}/topology`)
+            .then(response => response.json())
+            .then(data => {
+                loading.classList.add('d-none');
+                
+                const nodes = new vis.DataSet(data.nodes);
+                const edges = new vis.DataSet(data.edges);
+                
+                const graphData = { nodes: nodes, edges: edges };
+                
+                const options = {
+                    nodes: {
+                        shape: 'image',
+                        font: {
+                            color: '#ffffff',
+                            face: 'Inter',
+                            size: 14,
+                            strokeWidth: 3,
+                            strokeColor: '#0f172a'
+                        },
+                        shapeProperties: {
+                            useBorderWithImage: true,
+                            interpolation: true
+                        },
+                        shadow: {
+                            enabled: true,
+                            color: 'rgba(0,0,0,0.5)',
+                            size: 10,
+                            x: 5,
+                            y: 5
+                        }
+                    },
+                    edges: {
+                        width: 2,
+                        color: {
+                            color: 'rgba(255,255,255,0.2)',
+                            highlight: '#38bdf8',
+                            hover: '#38bdf8'
+                        }
+                    },
+                    physics: {
+                        forceAtlas2Based: {
+                            gravitationalConstant: -100,
+                            centralGravity: 0.01,
+                            springLength: 200,
+                            springConstant: 0.08
+                        },
+                        maxVelocity: 50,
+                        solver: 'forceAtlas2Based',
+                        timestep: 0.35,
+                        stabilization: { iterations: 150 }
+                    },
+                    interaction: {
+                        hover: true,
+                        tooltipDelay: 100,
+                        zoomView: true
+                    }
+                };
+
+                // Initialize network!
+                const network = new vis.Network(container, graphData, options);
+
+                // Handle Clicks
+                network.on("selectNode", function (params) {
+                    if (params.nodes.length == 1) {
+                        const nodeId = params.nodes[0];
+                        const nObj = nodes.get(nodeId);
+                        openDeviceModal(nodeId, nObj.metaData);
+                    }
+                });
+            })
+            .catch(err => {
+                loading.innerHTML = `<div class="text-danger h5"><i class="fas fa-times-circle me-2"></i>Error loading topology data.</div>`;
+                console.error(err);
+            });
+            
+        function openDeviceModal(ip, meta) {
+            // Setup Modal Header based on standard metadata right immediately
+            document.getElementById('modalTitle').textContent = `${meta.type}: ${meta.hostname || ip}`;
+            const modalLogo = document.getElementById('modalLogo');
+            const modalErrorIcon = document.getElementById('modalErrorIcon');
+            modalLogo.src = meta.logo || "{{ url_for('static', filename='logos/unknown.png') }}";
+            modalLogo.alt = meta.vendor || 'Unknown vendor';
+            modalLogo.style.borderColor = meta.color || '#aaaaaa';
+            modalErrorIcon.classList.toggle('d-none', !meta.last_error);
+            modalErrorIcon.title = meta.last_error ? `Last Error: ${meta.last_error}` : 'This device has a recent error recorded.';
+            
+            // UI State
+            document.getElementById('modalSpinner').classList.remove('d-none');
+            document.getElementById('modalContent').classList.add('d-none');
+            document.getElementById('dtConfig').textContent = "Loading config evidence...";
+            document.getElementById('dtScanCredential').textContent = '';
+            
+            dModal.show();
+            
+            // Fetch detailed modal data asynchronously
+            fetch(`/api/db/${dbname}/device/${ip}`)
+                .then(r => r.json())
+                .then(d => {
+                    document.getElementById('modalSpinner').classList.add('d-none');
+                    document.getElementById('modalContent').classList.remove('d-none');
+                    modalLogo.src = d.logo || meta.logo || "{{ url_for('static', filename='logos/unknown.png') }}";
+                    modalLogo.alt = d.vendor || meta.vendor || 'Unknown vendor';
+                    modalLogo.style.borderColor = d.vendor_color || meta.color || '#aaaaaa';
+                    modalErrorIcon.classList.toggle('d-none', !d.last_error);
+                    modalErrorIcon.title = d.last_error ? `Last Error: ${d.last_error}` : 'This device has a recent error recorded.';
+                    
+                    document.getElementById('dtIp').textContent = d.ip || 'Unknown';
+                    document.getElementById('dtVendor').textContent = d.vendor || 'Unknown';
+                    document.getElementById('dtModel').textContent = d.model || 'Unknown';
+                    document.getElementById('dtSerial').textContent = d.serial_number || 'Unknown';
+                    document.getElementById('dtOs').textContent = d.software_version || 'Unknown';
+                    document.getElementById('dtTcp22').textContent = d.ssh_port_open ? 'Open' : 'Closed';
+                    document.getElementById('dtSnmpCredential').textContent = d.working_snmp_credential || 'Unknown';
+                    document.getElementById('dtSshCredential').textContent = d.working_ssh_credential || 'Unknown';
+                    document.getElementById('dtLastError').textContent = d.last_error || 'None';
+                    
+                    // Interfaces
+                    const intContainer = document.getElementById('dtInterfaces');
+                    intContainer.innerHTML = '';
+                    if (d.interfaces && d.interfaces.length > 0) {
+                        d.interfaces.forEach(i => {
+                            let tr = document.createElement('tr');
+                            tr.innerHTML = `<td class="text-info">${i.interface_name}</td><td>${i.ip_address}</td><td class="text-muted fst-italic">${i.subnet_mask}</td>`;
+                            intContainer.appendChild(tr);
+                        });
+                    } else {
+                        intContainer.innerHTML = '<tr><td class="text-muted fst-italic">No interfaces observed</td></tr>';
+                    }
+                    
+                    // Neighbors (Egress)
+                    const neiContainer = document.getElementById('dtNeighbors');
+                    neiContainer.innerHTML = '';
+                    if (d.neighbors && d.neighbors.length > 0) {
+                        d.neighbors.forEach(n => {
+                            let li = document.createElement('li');
+                            li.className = "mb-2 border-bottom border-secondary pb-1";
+                            li.innerHTML = `<span class="text-info">${n.neighbor_hostname}</span> (${n.neighbor_ip})<br>
+                                          <span class="text-muted small">${n.protocol || 'Unknown'} via ${n.local_port} &rarr; ${n.remote_port}</span>` +
+                                          (n.resolved_device_ip && n.resolved_device_ip !== n.observed_neighbor_ip
+                                            ? `<br><span class="text-muted small">Matched via interface IP ${n.observed_neighbor_ip}</span>`
+                                            : '');
+                            neiContainer.appendChild(li);
+                        });
+                    } else {
+                        neiContainer.innerHTML = '<li class="text-muted fst-italic">No outbound neighbors logged</li>';
+                    }
+                    
+                    // Seen By (Ingress)
+                    const seenContainer = document.getElementById('dtSeenBy');
+                    seenContainer.innerHTML = '';
+                    if (d.seen_by && d.seen_by.length > 0) {
+                        d.seen_by.forEach(s => {
+                            let li = document.createElement('li');
+                            li.className = "mb-2 border-bottom border-secondary pb-1";
+                            li.innerHTML = `<span class="text-success">${s.source_hostname || 'Unknown'}</span> (${s.source_ip})<br>
+                                          <span class="text-muted small">${s.protocol || 'Unknown'} via ${s.remote_port_on_source} &rarr; ${s.local_port_on_this}</span>` +
+                                          (s.matched_address && s.matched_address !== d.ip
+                                            ? `<br><span class="text-muted small">Matched on local interface IP ${s.matched_address}</span>`
+                                            : '');
+                            seenContainer.appendChild(li);
+                        });
+                    } else {
+                        seenContainer.innerHTML = '<li class="text-muted fst-italic">Not seen by any other scanned devices</li>';
+                    }
+                    
+                    // Historic Scans Dropdown Logic
+                    const timeSelect = document.getElementById('dtScanTimeSelect');
+                    const configPre = document.getElementById('dtConfig');
+                    
+                    timeSelect.innerHTML = '';
+                    
+                    if (d.scans && d.scans.length > 0) {
+                        // Store the big payload globally so the select handler can read it easily
+                        window.currentDeviceScans = d.scans;
+                        
+                        d.scans.forEach((scan, index) => {
+                            let opt = document.createElement('option');
+                            opt.value = index;
+                            opt.textContent = scan.scan_time;
+                            timeSelect.appendChild(opt);
+                        });
+                        
+                        // Load newest immediately
+                        renderConfigState(0);
+                        
+                        timeSelect.onchange = function() {
+                            renderConfigState(parseInt(this.value, 10));
+                        };
+                        
+                    } else {
+                        timeSelect.innerHTML = '<option>No Scans Available</option>';
+                        document.getElementById('dtScanCredential').textContent = d.working_ssh_credential ? `Credential: ${d.working_ssh_credential}` : 'Credential: N/A';
+                        configPre.innerHTML = `<span class="text-warning fst-italic">No configuration evidence available for this scan.</span>`;
+                    }
+                })
+                .catch(err => {
+                    document.getElementById('modalSpinner').innerHTML = `<span class="text-danger">Failed to load payload</span>`;
+                });
+                
+            function renderConfigState(scanIndex) {
+                const scanEntry = window.currentDeviceScans[scanIndex];
+                const cfg = scanEntry.config_content;
+                const credentialRef = scanEntry.working_ssh_credential || '';
+                document.getElementById('dtScanCredential').textContent = credentialRef ? `Credential: ${credentialRef}` : 'Credential: N/A';
+                if(cfg) {
+                    document.getElementById('dtConfig').textContent = cfg;
+                } else {
+                    document.getElementById('dtConfig').innerHTML = `<span class="text-warning fst-italic">No configuration evidence saved for this timestamp.</span>`;
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

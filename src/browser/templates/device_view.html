@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="breadcrumbs" style="margin-bottom: 1rem;">
+    <a href="/">Databases</a> / 
+    <a href="{{ url_for('view_db', dbname=dbname) }}">{{ db_label }}</a> / 
+    <span>{{ ip_address }}</span>
+</div>
+
+<!-- Header / Timeline selector -->
+<div class="glass-panel" style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: flex-end;">
+    <div>
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+            <h1 style="font-size: 2rem; margin: 0;">{{ latest.hostname or 'N/A' }}</h1>
+            <span class="badge {{ latest.hardware_product.lower() if latest.hardware_product else 'unknown' }}">{{ latest.hardware_product or 'Unknown' }}</span>
+        </div>
+        <p class="mono text-muted" style="font-size: 1rem;">{{ ip_address }}</p>
+    </div>
+    
+    <div style="text-align: right;">
+        <label style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Select Scan Snapshot</label>
+        <select id="scanSelector" style="background: rgba(0, 0, 0, 0.3); color: var(--text-main); border: 1px solid var(--surface-border); padding: 0.5rem 1rem; border-radius: 6px; font-family: var(--font-mono); font-size: 0.875rem; outline: none; cursor: pointer;">
+            {% for scan in scans %}
+                <option value="{{ scan.id }}" {% if loop.index0 == 0 %}selected{% endif %}>
+                    {{ scan.scan_time }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+
+<!-- All Scan Data Containers -->
+<div id="scansContainer">
+    {% for scan in scans %}
+    <div class="scan-snapshot" id="scan-{{ scan.id }}" style="display: {% if loop.index0 == 0 %}grid{% else %}none{% endif %}; grid-template-columns: 350px 1fr; gap: 2rem; align-items: start;">
+        
+        <!-- Left Sidebar: Info -->
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <!-- Hardware Details -->
+            <div class="glass-panel" style="padding: 1.25rem;">
+                <h3 style="font-size: 1rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--surface-border);">System Details</h3>
+                <dl style="display: grid; grid-template-columns: 1fr 2fr; gap: 0.5rem 0; font-size: 0.875rem;">
+                    <dt class="text-muted">TCP/22:</dt> <dd>{{ 'Open' if scan.ssh_port_open else 'Closed' }}</dd>
+                    <dt class="text-muted">Model:</dt> <dd>{{ scan.model or '-' }}</dd>
+                    <dt class="text-muted">Serial:</dt> <dd class="mono">{{ scan.serial_number or '-' }}</dd>
+                    <dt class="text-muted">Software:</dt> <dd>{{ scan.software_version or '-' }}</dd>
+                    <dt class="text-muted">Uptime (s):</dt> <dd class="mono">{{ scan.uptime_seconds or '0' }}</dd>
+                    <dt class="text-muted">Power:</dt> <dd>{{ scan.power_status or '-' }}</dd>
+                    <dt class="text-muted">SNMP Cred:</dt> <dd class="mono">{{ scan.working_snmp_credential or '-' }}</dd>
+                    <dt class="text-muted">SSH Cred:</dt> <dd class="mono">{{ scan.working_ssh_credential or '-' }}</dd>
+                    <dt class="text-muted">Last Error:</dt> <dd style="word-break: break-word;">{{ scan.last_error or '-' }}</dd>
+                </dl>
+            </div>
+
+            <!-- Interfaces -->
+            <div class="glass-panel" style="padding: 1.25rem;">
+                <h3 style="font-size: 1rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--surface-border);">Interfaces ({{ scan.interfaces|length }})</h3>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 250px; overflow-y: auto;">
+                    {% for intf in scan.interfaces %}
+                    <div style="background: rgba(255, 255, 255, 0.02); padding: 0.5rem; border-radius: 6px; font-size: 0.8125rem;">
+                        <div style="font-weight: 500; margin-bottom: 0.25rem;">{{ intf.interface_name }}</div>
+                        <div class="mono text-muted">{{ intf.ip_address }} / {{ intf.subnet_mask }}</div>
+                    </div>
+                    {% else %}
+                    <div class="text-muted" style="font-size: 0.875rem;">No interfaces found.</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Neighbors -->
+            <div class="glass-panel" style="padding: 1.25rem;">
+                <h3 style="font-size: 1rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--surface-border);">Outbound Neighbors ({{ scan.neighbors|length }})</h3>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem;">
+                    {% for neighbor in scan.neighbors %}
+                    <div style="background: rgba(59, 130, 246, 0.05); border-left: 2px solid var(--primary-accent); padding: 0.5rem; border-radius: 0 6px 6px 0; font-size: 0.8125rem;">
+                        <div style="font-weight: 500; margin-bottom: 0.25rem;">{{ neighbor.neighbor_hostname }}</div>
+                        <div class="mono text-muted" style="margin-bottom: 0.25rem;">IP: {{ neighbor.neighbor_ip }}</div>
+                        {% if neighbor.resolved_device_ip and neighbor.resolved_device_ip != neighbor.observed_neighbor_ip %}
+                        <div class="text-muted" style="font-size: 0.75rem;">Matched via interface IP {{ neighbor.observed_neighbor_ip }}</div>
+                        {% endif %}
+                        <div class="text-muted" style="font-size: 0.75rem;">Protocol: {{ neighbor.protocol or 'Unknown' }}</div>
+                        <div class="text-muted" style="font-size: 0.75rem;">Via: {{ neighbor.local_port }} -> {{ neighbor.remote_port }}</div>
+                    </div>
+                    {% else %}
+                    <div class="text-muted" style="font-size: 0.875rem;">No outbound neighbors logged.</div>
+                    {% endfor %}
+                </div>
+                
+                <h3 style="font-size: 1rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--surface-border);">Inbound Neighbors ({{ scan.seen_by|length }})</h3>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    {% for ingress in scan.seen_by %}
+                    <div style="background: rgba(16, 185, 129, 0.05); border-left: 2px solid var(--success); padding: 0.5rem; border-radius: 0 6px 6px 0; font-size: 0.8125rem;">
+                        <div style="font-weight: 500; margin-bottom: 0.25rem;">{{ ingress.source_hostname or 'Unknown' }}</div>
+                        <div class="mono text-muted" style="margin-bottom: 0.25rem;">IP: {{ ingress.source_ip }}</div>
+                        {% if ingress.matched_address and ingress.matched_address != ip_address %}
+                        <div class="text-muted" style="font-size: 0.75rem;">Matched on local interface IP {{ ingress.matched_address }}</div>
+                        {% endif %}
+                        <div class="text-muted" style="font-size: 0.75rem;">Protocol: {{ ingress.protocol or 'Unknown' }}</div>
+                        <div class="text-muted" style="font-size: 0.75rem;">Via: {{ ingress.remote_port_on_source }} -> {{ ingress.local_port_on_this }}</div>
+                    </div>
+                    {% else %}
+                    <div class="text-muted" style="font-size: 0.875rem;">Not seen by any other scanned devices.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Pane: Config / Evidence -->
+        <div class="glass-panel" style="height: 100%; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--surface-border);">
+                <h3 style="font-size: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width: 18px; color: var(--primary-accent);"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"></path></svg>
+                    Running Configuration Evidence
+                </h3>
+                <span class="mono text-muted" style="font-size: 0.75rem;">Credential: {{ (scan.config_info.working_ssh_credential if scan.config_info else scan.working_ssh_credential) or 'N/A' }}</span>
+            </div>
+            
+            <div style="flex: 1; background: #050810; border-radius: 8px; border: 1px solid rgba(0,0,0,0.5); overflow: hidden; position: relative;">
+                {% if scan.config_content %}
+                <pre style="margin: 0; padding: 1.5rem; height: 100%; overflow: auto; color: #e2e8f0; font-family: var(--font-mono); font-size: 0.8125rem; line-height: 1.5;"><code>{{ scan.config_content }}</code></pre>
+                {% else %}
+                <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--text-muted);">
+                    <div style="text-align: center;">
+                        <svg fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24" style="width: 48px; margin: 0 auto 1rem; opacity: 0.3;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        <p>No configuration evidence available for this scan.</p>
+                        {% if scan.config_info %}
+                            <p style="font-size: 0.75rem; margin-top: 0.5rem;" class="mono text-muted">Path: {{ scan.config_info.evidence_file_path }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const selector = document.getElementById('scanSelector');
+        
+        selector.addEventListener('change', (e) => {
+            const scanId = e.target.value;
+            
+            // Hide all
+            document.querySelectorAll('.scan-snapshot').forEach(el => {
+                el.style.display = 'none';
+            });
+            
+            // Show selected
+            const target = document.getElementById('scan-' + scanId);
+            if (target) {
+                target.style.display = 'grid';
+                // Trigger reflow for animation if needed
+                target.style.animation = 'none';
+                target.offsetHeight; 
+                target.style.animation = 'fadeIn 0.3s ease-out';
+            }
+        });
+    });
+</script>
+{% endblock %}

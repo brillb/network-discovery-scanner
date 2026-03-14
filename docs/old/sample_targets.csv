@@ -1,0 +1,18 @@
+ip_target,snmp_read_name,snmp_v3_name,ssh_user_pass_name,ssh_key_name,expected_vendor_model
+10.0.0.1,public_read,,local_admin,,Cisco Catalyst 9300
+10.0.0.2,,,local_admin,automation_rsa,Cisco Catalyst 9300
+10.0.0.3,public_read,,,,
+10.0.0.4,,,local_admin,,
+10.0.0.5,,v3_sec_team,local_admin,,Palo Alto PA-3220
+10.0.0.6,public_read,,local_admin,,F5 BIG-IP i2000
+10.0.0.7,public_read,,local_admin,,Cisco Nexus 9000
+10.0.0.8,,v3_sec_team,,,Juniper SRX340
+10.0.0.9,public_read,,,,,
+10.0.0.10,public_read,,local_admin,,Cisco ASR 1000
+10.0.0.11,,v3_sec_team,local_admin,,Cisco Firepower 2100
+10.0.0.12,public_read,,local_admin,,
+10.0.0.13,public_read,,local_admin,automation_rsa,Cisco Catalyst 3850
+10.0.0.14,,,local_admin,,
+10.0.0.15,,v3_sec_team,local_admin,,Palo Alto PA-820
+192.168.100.0/24,public_read,,local_admin,automation_rsa,
+172.16.50.0/24,,v3_sec_team,local_admin,,

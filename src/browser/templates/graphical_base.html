@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Scanner Dashboard</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Bootstrap and FontAwesome -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --surface-color: rgba(22, 27, 34, 0.75);
+            --surface-border: rgba(255, 255, 255, 0.08);
+            --primary-accent: #38bdf8;
+            --primary-glow: rgba(56, 189, 248, 0.25);
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --row-hover: rgba(255, 255, 255, 0.03);
+            --success: #10b981;
+            --font-main: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(56, 189, 248, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.02) 0%, transparent 50%);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: rgba(11, 17, 33, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--surface-border);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 1.25rem;
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--text-main);
+            transition: opacity 0.2s;
+        }
+
+        .logo:hover {
+            opacity: 0.8;
+        }
+
+        .logo-icon {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, var(--primary-accent), #8b5cf6);
+            border-radius: 6px;
+            position: relative;
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        .logo-icon::after {
+            content: '';
+            position: absolute;
+            inset: 2px;
+            background: var(--bg-color);
+            border-radius: 4px;
+        }
+
+        main {
+            flex: 1;
+            padding: 2rem;
+            max-width: 1440px;
+            margin: 0 auto;
+            width: 100%;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .glass-panel, .glass-card {
+            background: var(--surface-color);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--surface-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .breadcrumbs {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .breadcrumbs a {
+            color: var(--primary-accent);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .breadcrumbs a:hover {
+            color: #60a5fa;
+            text-decoration: underline;
+        }
+
+        /* Tables! */
+        .table-container {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid var(--surface-border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--surface-border);
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        th:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+        }
+
+        th .sort-icon {
+            display: inline-block;
+            margin-left: 0.25rem;
+            opacity: 0.3;
+            font-size: 0.75rem;
+        }
+
+        th.asc .sort-icon { opacity: 1; transform: rotate(180deg); }
+        th.desc .sort-icon { opacity: 1; transform: rotate(0deg); }
+
+        td {
+            padding: 1rem;
+            font-size: 0.875rem;
+            border-bottom: 1px solid var(--surface-border);
+            transition: background 0.2s;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr {
+            transition: background 0.2s;
+        }
+
+        tbody tr:hover {
+            background: var(--row-hover);
+        }
+
+        a.table-link {
+            color: var(--text-main);
+            text-decoration: none;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        a.table-link:hover {
+            color: var(--primary-accent);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .badge.router { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .badge.switch { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge.firewall { background: rgba(244, 63, 94, 0.15); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.3); }
+
+        /* Typography utils */
+        h1, h2, h3 { color: var(--text-main); font-weight: 600; }
+        .text-muted { color: var(--text-muted) !important; }
+        .mono { font-family: var(--font-mono); }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="/" class="logo">
+            <div class="logo-icon"></div>
+            Network Visualizer
+        </a>
+        <div style="font-size: 0.875rem; color: var(--text-muted);">
+            Network Discovery Scanner
+        </div>
+    </header>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <script>
+        // Universal Client-side Sort
+        document.addEventListener('DOMContentLoaded', () => {
+            const tableHeaders = document.querySelectorAll('th[data-sortable="true"]');
+            
+            tableHeaders.forEach(th => {
+                th.addEventListener('click', () => {
+                    const table = th.closest('table');
+                    const tbody = table.querySelector('tbody');
+                    const rows = Array.from(tbody.querySelectorAll('tr'));
+                    const index = Array.from(th.parentNode.children).indexOf(th);
+                    
+                    let ascending = true;
+                    if (th.classList.contains('asc')) {
+                        ascending = false;
+                        th.classList.remove('asc');
+                        th.classList.add('desc');
+                    } else {
+                        tableHeaders.forEach(h => { h.classList.remove('asc', 'desc'); });
+                        th.classList.add('asc');
+                    }
+
+                    rows.sort((a, b) => {
+                        let aVal = a.children[index].textContent.trim();
+                        let bVal = b.children[index].textContent.trim();
+                        
+                        // IP numeric sort attempt
+                        if (aVal.match(/^\d+\.\d+\.\d+\.\d+$/)) {
+                            const aParts = aVal.split('.').map(Number);
+                            const bParts = bVal.split('.').map(Number);
+                            for (let i = 0; i < 4; i++) {
+                                if (aParts[i] !== bParts[i]) {
+                                    return ascending ? aParts[i] - bParts[i] : bParts[i] - aParts[i];
+                                }
+                            }
+                            return 0;
+                        }
+                        
+                        return ascending ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+                    });
+
+                    tbody.innerHTML = '';
+                    rows.forEach(row => tbody.appendChild(row));
+                });
+            });
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

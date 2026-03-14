@@ -1,0 +1,8 @@
+flowchart TD
+    Start([Read row: CIDR Subnet]) --> NmapSweep[Nmap Sweep: ICMP Ping + TCP 22]
+    NmapSweep --> Filter[Filter Responding IPs into Array]
+    Filter --> Loop[Loop through Responding IPs]
+    Loop --> ProcessIP[Execute Sub-script: process_single_ip.py]
+    ProcessIP --> NextIP{More IPs?}
+    NextIP -->|Yes| ProcessIP
+    NextIP -->|No| End([Subnet Processing Complete])

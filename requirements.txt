@@ -1,0 +1,12 @@
+pyyaml
+python-nmap
+pysnmp
+netmiko
+textfsm
+ntc-templates
+flask
+pillow
+sqlalchemy
+pymysql
+psycopg[binary]
+blessed

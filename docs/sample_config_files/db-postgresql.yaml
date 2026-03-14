@@ -1,0 +1,9 @@
+db:
+  type: postgresql
+  host: db.example.com
+  port: 5432
+  database: discovery_inventory
+  username: scanner_user
+  password_env: DISCOVERY_DB_PASSWORD
+  ssl_mode: require
+  connect_timeout: 10

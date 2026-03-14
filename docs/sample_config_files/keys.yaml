@@ -1,0 +1,47 @@
+# Configuration Template for Network Credentials
+# 
+# The top-level keys in this YAML file represent conceptual "Keytags".
+# You can reference these keytags in targets.csv to perform a "constrained scan",
+# testing only the credentials specified under that tag.
+# If no keytags are placed in targets.csv for an IP, the scanner performs an
+# "unconstrained scan" and will brute-force all credentials under all keytags defined here.
+# Inside a keytag, valid auth types are: snmpv2, snmpv3, ssh_password, ssh_key.
+# You can provide multiple credentials for the same auth type as a YAML list.
+# Successful credentials are stored in the database as references, not secrets:
+#   SNMP: <keytag>:<index> across the SNMP entries under that tag
+#   SSH password: <keytag>:p<index>
+#   SSH key: <keytag>:k<index>
+
+joe_smith_keys:
+  snmpv2:
+    - "public"
+    - "joe_private"
+  snmpv3:
+    - username: "jsmith"
+      auth_protocol: "SHA"
+      auth_key: "authpass123"
+      priv_protocol: "AES"
+      priv_key: "privpass123"
+  ssh_password:
+    - username: "jsmith"
+      password: "SuperSecretPassword"
+
+site_a_admin:
+  snmpv2:
+    - "site_A_RO"
+  ssh_password:
+    - username: "siteadmin"
+      password: "SiteAdminPassword!"
+
+global_read_only:
+  snmpv3:
+    - username: "readonly"
+      auth_protocol: "MD5"
+      auth_key: "md5pass"
+      priv_protocol: "DES"
+      priv_key: "despass"
+  ssh_key:
+    - username: "automation"
+      key_file: "/path/to/id_rsa"
+    - username: "ansible"
+      key_file: "/home/ansible/.ssh/id_rsa"

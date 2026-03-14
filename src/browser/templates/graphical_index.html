@@ -1,0 +1,37 @@
+{% extends "graphical_base.html" %}
+
+{% block content %}
+<div class="row mb-5">
+    <div class="col-12 text-center">
+        <h1 class="display-4"><i class="fas fa-project-diagram me-3"></i>Graphical Network Browser</h1>
+        <p class="lead">Select the configured database to view its interactive topology cloud.</p>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="glass-card p-4">
+            <h4 class="mb-4 border-bottom border-secondary pb-2">Available Data Sources</h4>
+            
+            {% if databases %}
+                <div class="list-group list-group-flush bg-transparent">
+                    {% for db in databases %}
+                        <a href="{{ url_for('view_db', dbname=db.key) }}" class="list-group-item list-group-item-action bg-transparent text-light border-secondary d-flex justify-content-between align-items-center custom-hover">
+                            <div>
+                                <i class="fas fa-database text-info me-3"></i>
+                                <strong>{{ db.label }}</strong>
+                                <div class="small text-muted mt-1"><code>{{ db.description }}</code></div>
+                            </div>
+                            <i class="fas fa-chevron-right text-muted"></i>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-warning bg-transparent border-warning text-warning" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i> No configured database source is available. Evidence directory: <br><code>{{ directory }}</code>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
