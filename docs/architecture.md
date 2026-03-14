@@ -93,7 +93,7 @@ The TCP reachability and subnet sweep component.
 
 Responsibilities:
 
-- perform direct TCP/22 checks for single-IP workflow decisions
+- perform direct TCP checks for the SSH credential ports used by the single-IP workflow
 - run subnet discovery sweeps using `python-nmap` and the system Nmap binary
 - return structured active-host results to the orchestrator
 
@@ -195,6 +195,8 @@ The scanner never stores the secrets themselves in the DB. It stores credential 
 - `site_a_admin:0` for SNMP
 - `site_a_admin:p0` for SSH password
 - `site_a_admin:k1` for SSH key
+
+SSH credential entries can also define an optional `port`. If omitted, that credential uses TCP/22.
 
 ### 3.3 `ssh_commands.yaml`
 Maps SNMP-identified platforms to:
@@ -317,7 +319,7 @@ Modules involved:
 Behavior:
 
 - run one ICMP ping
-- run one TCP/22 connect probe
+- run TCP connect probes against the SSH ports defined on the candidate SSH credentials for that target
 - treat the device as alive if either method succeeds
 
 Purpose:
@@ -372,6 +374,7 @@ Module involved:
 Behavior:
 
 - build SSH credential candidates from the selected keytags
+- default any credential without an explicit `port` to TCP/22
 - try them sequentially
 - connect with Netmiko
 - execute the profile-selected commands

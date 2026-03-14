@@ -61,9 +61,9 @@ ip_or_subnet,keytag1,keytag2,keytag3
 
 ### 3\. Edit `keys.yaml`
 
-Edit the copied `keys.yaml` file to contain the raw passwords, keys, and community strings your organization uses.
+Edit the copied `keys.yaml` file to contain the raw passwords, keys, community strings, and any non-default SSH ports your organization uses.
 
-The primary tags defined at the top level of this file (e.g., `site_a_admin`) map to the names you used in the CSV. Inside these top-level tags, you group the appropriate auth types (snmpv2, snmpv3, ssh\_password, ssh\_key) and define an array of possible credentials for each type.
+The primary tags defined at the top level of this file (e.g., `site_a_admin`) map to the names you used in the CSV. Inside these top-level tags, you group the appropriate auth types (snmpv2, snmpv3, ssh\_password, ssh\_key) and define an array of possible credentials for each type. SSH entries can also include an optional `port` field; if you omit it, the scanner uses port `22` for that credential.
 
 The scanner stores only credential references in the database, not secrets. Successful SNMP attempts are recorded as `<keytag>:<index>`, while successful SSH attempts are recorded as `<keytag>:p<index>` for password entries or `<keytag>:k<index>` for key entries.
 
@@ -75,6 +75,7 @@ site_a_admin:
   ssh_password:
     - username: "admin"
       password: "SuperSecretPassword"
+      port: 22
 
 global_read_only:
   snmpv3:
@@ -86,6 +87,7 @@ global_read_only:
   ssh_key:
     - username: "automation"
       key_file: "/path/to/id_rsa"
+      port: 22
 ```
 
 ### 4\. Choose and edit `db.yaml`

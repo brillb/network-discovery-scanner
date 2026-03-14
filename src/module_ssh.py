@@ -24,15 +24,25 @@ import socket
 from datetime import datetime
 
 
-def _probe_ssh_banner(ip_address: str, timeout: int) -> tuple[bool, str | None]:
+def _normalize_port(port_value) -> int:
+    if port_value in (None, ""):
+        return 22
+
+    port = int(port_value)
+    if not 1 <= port <= 65535:
+        raise ValueError(f"invalid SSH port: {port}")
+    return port
+
+
+def _probe_ssh_banner(ip_address: str, port: int, timeout: int) -> tuple[bool, str | None]:
     """
-    Confirm TCP/22 is speaking SSH before Netmiko/Paramiko takes over.
+    Confirm the target TCP port is speaking SSH before Netmiko/Paramiko takes over.
     """
     max_lines = 5
     max_bytes = 1024
 
     try:
-        with socket.create_connection((ip_address, 22), timeout=timeout) as sock:
+        with socket.create_connection((ip_address, port), timeout=timeout) as sock:
             sock.settimeout(timeout)
             buffer = b""
             lines_seen = 0
@@ -109,8 +119,17 @@ def gather_configs(
             pass
             
     # Setup connection dict
+    try:
+        port = _normalize_port(ssh_params.get("port", 22))
+    except (TypeError, ValueError) as exc:
+        return {
+            "status": "error",
+            "reason": "invalid_port",
+            "detail": str(exc),
+        }
     connection_params = {
         'ip': ip_address,
+        'port': port,
         'username': ssh_params.get('username'),
         'device_type': device_type,
         'global_delay_factor': 2,
@@ -128,7 +147,7 @@ def gather_configs(
         connection_params['key_file'] = ssh_params['key_file']
         connection_params['use_keys'] = True
 
-    banner_ok, banner_detail = _probe_ssh_banner(ip_address, timeout)
+    banner_ok, banner_detail = _probe_ssh_banner(ip_address, port, timeout)
     if not banner_ok:
         return {
             "status": "error",
@@ -176,6 +195,7 @@ if __name__ == "__main__":
     parser.add_argument("--username", required=True)
     parser.add_argument("--password")
     parser.add_argument("--key-file")
+    parser.add_argument("--port", type=int, default=22)
     parser.add_argument("--device-type", default="autodetect")
     parser.add_argument("--evidence-dir", default=os.getcwd())
     parser.add_argument("--ssh-commands-file")
@@ -183,6 +203,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     params = {"username": args.username}
+    params["port"] = args.port
     if args.password:
         params["password"] = args.password
     if args.key_file:

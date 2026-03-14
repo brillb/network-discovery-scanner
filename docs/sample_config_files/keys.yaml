@@ -7,6 +7,8 @@
 # "unconstrained scan" and will brute-force all credentials under all keytags defined here.
 # Inside a keytag, valid auth types are: snmpv2, snmpv3, ssh_password, ssh_key.
 # You can provide multiple credentials for the same auth type as a YAML list.
+# SSH credential entries can also include an optional "port" field. If omitted,
+# the scanner defaults that SSH credential to port 22.
 # Successful credentials are stored in the database as references, not secrets:
 #   SNMP: <keytag>:<index> across the SNMP entries under that tag
 #   SSH password: <keytag>:p<index>
@@ -25,6 +27,7 @@ joe_smith_keys:
   ssh_password:
     - username: "jsmith"
       password: "SuperSecretPassword"
+      port: 22
 
 site_a_admin:
   snmpv2:
@@ -32,6 +35,7 @@ site_a_admin:
   ssh_password:
     - username: "siteadmin"
       password: "SiteAdminPassword!"
+      port: 22
 
 global_read_only:
   snmpv3:
@@ -43,5 +47,7 @@ global_read_only:
   ssh_key:
     - username: "automation"
       key_file: "/path/to/id_rsa"
+      port: 22
     - username: "ansible"
       key_file: "/home/ansible/.ssh/id_rsa"
+      port: 22

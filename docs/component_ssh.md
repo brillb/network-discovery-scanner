@@ -13,6 +13,7 @@ While designed to be imported, this script can be run standalone to quickly back
     *   `--ip <address>` (Required)
     *   `--username <string>` (Required)
     *   `--password <string>`, `--key-file <path>` (Need at least one)
+    *   `--port <integer>` (Optional, defaults to `22`)
     *   `--evidence-dir <path>` (Optional, defaults to current directory)
     *   `--device-type <netmiko_type>` (Optional, e.g. `cisco_ios`)
 *   **Env Variables**: `SCANNER_SSH_TIMEOUT`
@@ -20,11 +21,11 @@ While designed to be imported, this script can be run standalone to quickly back
 ## Interfaces (Function Calls)
 
 `def gather_configs(ip_address: str, ssh_params: dict, evidence_dir: str, device_type: str = 'autodetect', ssh_commands_file_path: str = None) -> dict:`
-*   **Input**: `ssh_params` contains usernames, passwords, or paths to SSH key files from the YAML lookup. `evidence_dir` dictates where the raw traceback is saved. `device_type` helps Netmiko connect faster if known from the SNMP phase. `ssh_commands_file_path` brings the OS-defined arrays into execution.
+*   **Input**: `ssh_params` contains usernames, passwords, key-file paths, and an optional per-credential SSH `port` from the YAML lookup. `evidence_dir` dictates where the raw traceback is saved. `device_type` helps Netmiko connect faster if known from the SNMP phase. `ssh_commands_file_path` brings the OS-defined arrays into execution.
 *   **Logic**:
-    *   Performs a lightweight TCP/22 SSH banner probe before invoking Netmiko so non-SSH listeners and immediately-closing sockets fail cleanly.
+    *   Performs a lightweight SSH banner probe on the credential's configured port before invoking Netmiko so non-SSH listeners and immediately-closing sockets fail cleanly.
     *   Finds matching YAML configuration for `device_type`.
-    *   Attempts `ConnectHandler(**ssh_params)`.
+    *   Attempts `ConnectHandler(**ssh_params)`, including the configured TCP port.
     *   Disables terminal paging.
     *   Loops sequentially over each string in the array. Saves string exactly as received directly to `<evidence_dir>/<ip_address>-ssh-<YYYYMMDD_HHMMSS>.txt`.
 *   **Returns**: A structured JSON-compatible dictionary:

@@ -27,7 +27,7 @@ The important architectural change is that the pipeline performs network discove
 1. reachability
 2. SNMP
 3. OS profile evaluation
-4. SSH, but only when TCP/22 was confirmed open during reachability
+4. SSH, but only when at least one configured SSH credential port was confirmed open during reachability
 5. result finalization
 
 The returned result contains:
@@ -72,6 +72,7 @@ Credential behavior is unchanged:
 - if `--keytags` are provided, only those tags are attempted
 - otherwise all configured tags are candidates
 - SNMP and SSH credentials are tried sequentially until one succeeds
+- SSH credentials default to port `22` unless a `port` is defined on that YAML entry
 
 ## SSH Command Mapping
 

@@ -14,7 +14,8 @@
 
 """
 Component: Portscan
-Handles checking specific TCP/UDP ports, primarily used for direct TCP/22 state checks or subnet sweeps.
+Handles checking specific TCP ports, primarily used for direct SSH reachability
+state checks or subnet sweeps.
 """
 import socket
 import nmap
@@ -39,12 +40,13 @@ def ensure_nmap_available() -> None:
             "the system `nmap` executable is not available on PATH"
         ) from exc
 
-def check_tcp_22(ip_address: str, timeout: int = None) -> dict:
+def check_tcp_port(ip_address: str, port: int = 22, timeout: int = None) -> dict:
     """
-    Checks if TCP port 22 is open on the target using standard sockets.
+    Checks if a TCP port is open on the target using standard sockets.
     
     Args:
         ip_address (str): The target IP address.
+        port (int): TCP port to probe. Defaults to 22.
         timeout (int): Timeout in seconds. Defaults to env var SCANNER_PORTSCAN_TIMEOUT or 2.
     
     Returns:
@@ -55,16 +57,23 @@ def check_tcp_22(ip_address: str, timeout: int = None) -> dict:
         
     is_open = False
     try:
-        with socket.create_connection((ip_address, 22), timeout=timeout):
+        with socket.create_connection((ip_address, port), timeout=timeout):
             is_open = True
     except (socket.timeout, ConnectionRefusedError, OSError):
         is_open = False
 
     return {
         "ip_address": ip_address,
-        "port": 22,
+        "port": port,
         "is_open": is_open
     }
+
+
+def check_tcp_22(ip_address: str, timeout: int = None) -> dict:
+    """
+    Backward-compatible wrapper for the default SSH port.
+    """
+    return check_tcp_port(ip_address, port=22, timeout=timeout)
 
 def sweep_subnet(cidr: str) -> dict:
     """
@@ -121,13 +130,14 @@ def sweep_subnet(cidr: str) -> dict:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Standalone Portscan Component")
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--ip", help="IP address to check TCP 22")
+    group.add_argument("--ip", help="IP address to check a TCP port")
     group.add_argument("--subnet", help="Subnet CIDR to sweep")
+    parser.add_argument("--port", type=int, default=22, help="TCP port to check with --ip (default: 22)")
     
     args = parser.parse_args()
     
     if args.ip:
-        result = check_tcp_22(args.ip)
+        result = check_tcp_port(args.ip, port=args.port)
         print(json.dumps(result, indent=2))
     elif args.subnet:
         result = sweep_subnet(args.subnet)

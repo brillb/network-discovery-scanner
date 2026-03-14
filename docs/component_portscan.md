@@ -1,7 +1,7 @@
 # Component: Portscan (`module_portscan.py`)
 
 ## Purpose
-Handles checking specific TCP/UDP ports, primarily used to record current TCP/22 reachability state for single-device scans or to sweep subnets when ICMP is blocked.
+Handles checking specific TCP/UDP ports, primarily used to record current SSH reachability state for single-device scans or to sweep subnets when ICMP is blocked.
 
 ## Core Libraries
 *   `python-nmap` (pip): Python wrapper for the system Nmap utility. Requires Nmap to be installed on the host laptop.
@@ -14,17 +14,17 @@ While primarily imported by orchestrators, this component can run standalone for
 
 ## Interfaces (Function Calls)
 
-`def check_tcp_22(ip_address: str, timeout: int = 2) -> dict:`
-*   Uses `socket.create_connection((ip_address, 22), timeout)`.
+`def check_tcp_port(ip_address: str, port: int = 22, timeout: int = 2) -> dict:`
+*   Uses `socket.create_connection((ip_address, port), timeout)`.
 *   **Returns**: A structured JSON-compatible dictionary.
     ```json
     {
       "ip_address": "1.2.3.4",
-      "port": 22,
+      "port": 2222,
       "is_open": true
     }
     ```
-*   **Database Impact**: `process_single_ip.py` reads this dictionary on every single-IP run and updates the `devices` table (`ssh_port_open` and `is_alive`).
+*   **Database Impact**: `process_single_ip.py` probes the unique SSH ports defined on the candidate SSH credentials for that target. If any configured SSH port is open, it updates the `devices` table (`ssh_port_open` and `is_alive`) accordingly.
 
 `def sweep_subnet(cidr: str) -> dict:`
 *   Requires `python-nmap`.

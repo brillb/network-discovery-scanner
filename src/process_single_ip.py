@@ -117,6 +117,21 @@ def normalize_credential_list(value):
     return [value]
 
 
+def normalize_ssh_port(value, *, default=22):
+    if value in (None, ""):
+        return default
+
+    try:
+        port = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"invalid SSH port value: {value!r}") from exc
+
+    if not 1 <= port <= 65535:
+        raise ValueError(f"invalid SSH port value: {port}")
+
+    return port
+
+
 def selected_tags(request, keys_data):
     return request.keytags if request.keytags else keys_data.keys()
 
@@ -168,7 +183,11 @@ def build_ssh_credentials(request, keys_data):
                 {
                     "tag": tag,
                     "credential_ref": f"{tag}:p{index}",
-                    "params": {"username": cred["username"], "password": cred["password"]},
+                    "params": {
+                        "username": cred["username"],
+                        "password": cred["password"],
+                        "port": normalize_ssh_port(cred.get("port")),
+                    },
                 }
             )
 
@@ -177,11 +196,20 @@ def build_ssh_credentials(request, keys_data):
                 {
                     "tag": tag,
                     "credential_ref": f"{tag}:k{index}",
-                    "params": {"username": cred["username"], "key_file": cred["key_file"]},
+                    "params": {
+                        "username": cred["username"],
+                        "key_file": cred["key_file"],
+                        "port": normalize_ssh_port(cred.get("port")),
+                    },
                 }
             )
 
     return credentials_to_try
+
+
+def candidate_ssh_ports(request, keys_data):
+    ports = {cred["params"]["port"] for cred in build_ssh_credentials(request, keys_data)}
+    return sorted(ports) if ports else [22]
 
 
 def evaluate_os_profile(inventory_dict, ssh_commands_data):
@@ -233,7 +261,7 @@ class SingleIPPipeline:
         is_alive = False
 
         try:
-            result.reachability = self._verify_reachability(request.ip)
+            result.reachability = self._verify_reachability(request)
             is_alive = result.reachability.is_alive
             if not is_alive:
                 result.errors.append("reachability:unreachable")
@@ -250,7 +278,7 @@ class SingleIPPipeline:
                 if result.reachability.ssh_port_open:
                     result.ssh = self._attempt_ssh(request, os_profile)
                 else:
-                    print(f"[{request.ip}] Skipping SSH because TCP/22 is closed.")
+                    print(f"[{request.ip}] Skipping SSH because all configured SSH ports are closed.")
                     result.ssh = SSHResult(attempted=False, error="ssh:port_closed")
 
                 if result.ssh and result.ssh.error:
@@ -260,14 +288,18 @@ class SingleIPPipeline:
 
         return result
 
-    def _verify_reachability(self, ip):
+    def _verify_reachability(self, request):
+        ip = request.ip
         print(f"[{ip}] Verifying reachability...")
 
         ping_res = module_ping.ping_host(ip)
-        port_res = module_portscan.check_tcp_22(ip)
+        port_results = [
+            module_portscan.check_tcp_port(ip, port=port)
+            for port in candidate_ssh_ports(request, self.keys_data)
+        ]
 
         ping_responded = bool(ping_res["is_alive"])
-        ssh_port_open = bool(port_res["is_open"])
+        ssh_port_open = any(bool(port_res["is_open"]) for port_res in port_results)
         is_alive = ping_responded or ssh_port_open
 
         if not is_alive:
