@@ -3,7 +3,7 @@
 This directory contains the core implementation of the Network Scanner and Discovery Tool.
 
 If you are looking for instructions on how to run or test these scripts, please refer to the detailed testing guide located at:
-**[docs/testing_instructions/testing_guide.md](../docs/testing_instructions/testing_guide.md)**
+**[docs/testing_instructions/testing_guide.md](docs/testing_instructions/testing_guide.md)**
 
 ---
 
