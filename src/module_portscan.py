@@ -24,6 +24,21 @@ import json
 import ipaddress
 from datetime import datetime
 
+
+def ensure_nmap_available() -> None:
+    """
+    Validate that the system `nmap` executable is available to python-nmap.
+
+    Raises:
+        RuntimeError: if python-nmap cannot locate or start the `nmap` binary.
+    """
+    try:
+        nmap.PortScanner()
+    except (nmap.PortScannerError, OSError) as exc:
+        raise RuntimeError(
+            "the system `nmap` executable is not available on PATH"
+        ) from exc
+
 def check_tcp_22(ip_address: str, timeout: int = None) -> dict:
     """
     Checks if TCP port 22 is open on the target using standard sockets.
@@ -68,7 +83,10 @@ def sweep_subnet(cidr: str) -> dict:
     except ValueError as e:
         return {"error": f"Invalid CIDR notation: {e}"}
 
-    nm = nmap.PortScanner()
+    try:
+        nm = nmap.PortScanner()
+    except (nmap.PortScannerError, OSError) as exc:
+        return {"error": f"Unable to run nmap for subnet sweep: {exc}"}
     
     # -sn : Ping Scan - disable port scan
     # -PE : ICMP echo discovery

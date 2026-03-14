@@ -146,23 +146,12 @@ python src/scanner_orchestrator.py \
     --keys XYZcorp_scanning/keys.yaml \
     --ssh-commands XYZcorp_scanning/ssh_commands.yaml \
     --dbconfig XYZcorp_scanning/db.yaml \
-    --evidence-dir XYZcorp_scanning/scan_results
-```
-
-To enable threaded scanning, use the new worker and DB writer controls:
-
-``` bash
-python src/scanner_orchestrator.py \
-    --targets XYZcorp_scanning/targets.csv \
-    --keys XYZcorp_scanning/keys.yaml \
-    --ssh-commands XYZcorp_scanning/ssh_commands.yaml \
-    --dbconfig XYZcorp_scanning/db.yaml \
     --evidence-dir XYZcorp_scanning/scan_results \
     --max-workers-per-db-connection 20 \
     --max-db-connections 1
 ```
 
-SQLite requires `--max-db-connections 1`, but it can still run many concurrent scan workers behind that single writer connection.
+SQLite requires `--max-db-connections 1`, but it can still run many concurrent scan workers behind that single writer connection.  (default 10 workers but many more are possible)
 
 For external PostgreSQL, MySQL, or MariaDB databases, you can raise both values. For example, this allows up to 500 active scans:
 

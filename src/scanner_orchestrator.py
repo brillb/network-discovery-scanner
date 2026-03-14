@@ -337,6 +337,30 @@ def load_target_specs(csv_path):
     return specs
 
 
+def require_nmap_for_subnet_sweeps(specs):
+    """
+    Exit early if the target CSV includes subnet sweeps but `nmap` is unavailable.
+
+    This runs immediately after parsing the CSV so we fail before database
+    initialization or worker startup.
+    """
+    subnet_specs = [spec for spec in specs if not spec.is_single_ip]
+    if not subnet_specs:
+        return
+
+    try:
+        module_portscan.ensure_nmap_available()
+    except RuntimeError as exc:
+        subnet_list = ", ".join(spec.network.with_prefixlen for spec in subnet_specs[:5])
+        if len(subnet_specs) > 5:
+            subnet_list += ", ..."
+        raise SystemExit(
+            "The target CSV includes subnet sweep target(s) "
+            f"({subnet_list}), but the system `nmap` executable is not available. "
+            "Install Nmap and ensure `nmap` is on PATH before running subnet sweeps."
+        ) from exc
+
+
 def build_pipeline_exception_result(request, exc):
     # Convert an unexpected worker exception into a normal scan result shape so
     # the failure can still move through the writer/status pipeline cleanly.
@@ -606,6 +630,10 @@ def run_orchestrator(args, ui, evidence_dir):
     if not os.path.isfile(dbconfig_path):
         raise SystemExit(f"--dbconfig does not exist or is not a file: {dbconfig_path}")
 
+    specs = load_target_specs(args.targets)
+    require_nmap_for_subnet_sweeps(specs)
+    planner = TargetPlanner(specs)
+
     db_config = load_db_config(dbconfig_path)
     if db_config["type"] == "sqlite" and args.max_db_connections != 1:
         raise SystemExit("--max-db-connections must be 1 for SQLite.")
@@ -628,8 +656,6 @@ def run_orchestrator(args, ui, evidence_dir):
 
     keys_data = load_yaml_file(args.keys, "Keys")
     ssh_commands_data = load_yaml_file(args.ssh_commands, "SSH commands")
-    specs = load_target_specs(args.targets)
-    planner = TargetPlanner(specs)
 
     task_queue_capacity = max(total_workers * 2, total_workers)
     writer_queue_capacity = max(args.max_workers_per_db_connection * 2, 10)
